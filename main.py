@@ -2,8 +2,9 @@
 import os.path
 
 import boto3
+import tempfile
 import whisper
-import s3
+from s3 import s3_download
 import rmq
 
 if __name__ == '__main__':
@@ -37,12 +38,22 @@ if __name__ == '__main__':
     model = whisper.load_model('base')
 
 
-    def handle_transcription_requests(properties, payload):
-        s3_path = payload['path']
-        s3.s3_download(s3, s3_path  ,)
+    def passer(p, pa):
+        "just to get some pesky messages to pass through because they're broken"
+        return ''
 
-        assert os.path.exists(s3_path), 'the file to transcribe must exist'
-        result = model.transcribe(s3_path, fp16=False)
+
+    def handle_transcription_requests(properties, payload):
+        print(f'processing new request {payload} with properties {properties}')
+        s3_path = payload['path']
+        s3_prefix = 's3://'
+        parts = s3_path[len(s3_prefix):].split('/')
+        bucket, file_name = parts
+        path, ext = os.path.splitext(file_name)
+        local_fn = tempfile.mktemp(prefix=f'audio-to-transribe', suffix=ext)
+        s3_download(s3, s3_path, local_fn)
+        assert os.path.exists(local_fn), 'the file to transcribe must exist'
+        result = model.transcribe(local_fn, fp16=False)
         return result['text']
 
 
