@@ -84,7 +84,7 @@ def process_rmq_requsts():
         parts = s3_path[len(s3_prefix):].split('/')
         bucket, file_name = parts
         path, ext = os.path.splitext(file_name)
-        local_fn = tempfile.mktemp(prefix=f'audio-to-transribe', suffix=ext)
+        local_fn = tempfile.mktemp(prefix=f'audio-to-transcribe', suffix=ext)
         s3_download(s3, s3_path, local_fn)
         assert os.path.exists(local_fn), 'the file to transcribe must exist'
         return transcribe(local_fn)
