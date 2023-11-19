@@ -42,10 +42,17 @@ def process_rmq_requsts():
         parts = s3_path[len(s3_prefix):].split('/')
         bucket, file_name = parts
         path, ext = os.path.splitext(file_name)
-        local_fn = tempfile.mktemp(prefix=f'audio-to-transcribe', suffix=ext)
-        s3_download(s3, s3_path, local_fn)
-        assert os.path.exists(local_fn), 'the file to transcribe must exist'
-        return transcription.transcribe(local_fn)
+        local_fn = None
+        try:
+            _, local_fn = tempfile.mkstemp(prefix=f'audio-to-transcribe', suffix=ext)
+            s3_download(s3, s3_path, local_fn)
+            assert os.path.exists(local_fn), 'the file to transcribe must exist'
+            text_of_transcript = transcription.transcribe(local_fn)
+        finally:
+            if local_fn is not None:
+                os.remove(local_fn)
+
+        return text_of_transcript
 
     rmq.start_rabbitmq_processor(requests_q, rmq_host, rmq_username, rmq_password, rmq_vhost,
                                  handle_transcription_requests)
